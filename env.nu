@@ -78,8 +78,7 @@ def prompt_senpai [] {
 		}
 	}
 	# check if dir is a git repo 
-	let is_git = (fd --glob .git -H . --exact-depth 1 -t d 
-		| length) != 0
+	let is_git = (do -i { git rev-parse --is-inside-work-tree err> /dev/null | into bool }) == true
 
 	let git = do {
 		if ($is_git) {
