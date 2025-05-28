@@ -78,7 +78,7 @@ def prompt_senpai [] {
 		}
 	}
 	# check if dir is a git repo 
-	let is_git = (fd .git -H . --max-depth 1 -t d 
+	let is_git = (fd --glob .git -H . --exact-depth 1 -t d 
 		| length) != 0
 
 	let git = do {
@@ -93,10 +93,10 @@ def prompt_senpai [] {
 				} else { $"($branch_clr) !($reset)" }
 			}
 
-			let add = $"($fg.g)($bold)(['+', (git status --porcelain | rg "A" | wc -l)] | str join)($reset)"
-			let rem = $"($fg.r)($bold)(['-', (git status --porcelain | rg "D" | wc -l)] | str join)($reset)"
-			let mod = $"($fg.y)($bold)(['✻', (git status --porcelain | rg "M" | wc -l)] | str join)($reset)"
-			let unk = $"($fg.b)($bold)(['?', (git status --porcelain | rg "/?" | wc -l)] | str join)($reset)"
+			let add = $"($fg.g)($bold)(['+', (git status --porcelain | rg ' A .*' | wc -l)] | str join)($reset)"
+			let rem = $"($fg.r)($bold)(['-', (git status --porcelain | rg ' D .*' | wc -l)] | str join)($reset)"
+			let mod = $"($fg.y)($bold)(['✻', (git status --porcelain | rg ' M .*' | wc -l)] | str join)($reset)"
+			let unk = $"($fg.b)($bold)(['?', (git status --porcelain | rg '\?\? .*' | wc -l)] | str join)($reset)"
 
 			[$add $rem $mod $unk] 
 				| reduce --fold $branch {|it, acc| if (not ($it | str ends-with "0\e[0m")) {
@@ -138,3 +138,6 @@ $env.path = [
 	"/usr/local/bin",
 	"/usr/bin",
 ]
+
+$env.email1 = $"($env.HTUA)/hard_emails.csv"
+$env.email2 = $"($env.HTUA)/burner_emails.csv"
