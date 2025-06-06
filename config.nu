@@ -45,11 +45,15 @@ def bal [
 			return 
 		}
 		1 =>  {
-			let piped_data = $in 
-				| rename item idx
-				| each { |i| $i.item }
-				| reverse 
-				| reduce { |acc, i| $"($acc)\r\n($i)" }
+			### BUG this is broken in most cases 
+			let piped_data = do { if ($in | describe | str starts-with "table") {
+					$in 
+						| rename item idx
+						| each { |i| $i.item }
+						| reverse 
+						| reduce { |acc, i| $"($acc)\r\n($i)" }
+				} else { $in }
+			}
 
 			$piped_data | bat  -n --language ($args | get 0)
 		}
@@ -87,8 +91,9 @@ def rpg [] {
 
 ### play youtube videos from the terminal using ytp-dlp && ffplay a
 def yt [
-	--res: int (-r) = 0,
-	--dis (-d),
+	--res: int (-r) = 360
+	--headless (-H),
+	--loop (-l) = 0,
 	uri: string
 ] {	
 	let res = do {
@@ -107,12 +112,32 @@ def yt [
 		}
 	}
 
-	if ($dis) {
-		yt-dlp -S $res -f "b" $uri -o - | ffplay - -nodisp -autoexit -loglevel quiet
-	} else {
-		yt-dlp -S $res -f "b" $uri -o - | ffplay - -autoexit -loglevel quiet
+	let id = job spawn --tag "ongoing" { 
+		match [$headless, $loop] {
+			[false, 0] => (yt-dlp -S $res -f "b" $uri -o - | ffplay - -autoexit -loglevel quiet)
+			[false, _] => {
+				(yt-dlp -S $res -f "b" $uri -o - | ffplay - -autoexit -loglevel quiet)
+				for _ in 0..($loop - 1) {
+					let video = job recv 
+					$video | ffplay - -autoexit -loglevel quiet -loop $loop
+				}
+			}
+			[true, 0] => (yt-dlp -S $res -f "b" $uri -o - | ffplay - -nodisp -autoexit -loglevel quiet)
+			[true, _] => {
+				(yt-dlp -S $res -f "b" $uri -o - | ffplay - -nodisp -autoexit -loglevel quiet)
+				let video = job recv 
+				for _ in 0..($loop - 1) {
+					$video | ffplay - -nodisp -autoexit -loglevel quiet 
+				}
+			}
+		}
 	}
-}
+
+	let id1 = job spawn --tag "ongoing" { 
+		let video = yt-dlp -S $res -f "b" $uri -o -
+		$video | job send $id 
+	}
+} 
 
 const themes_dir = "alacritty/alacritty-theme/themes/"
 ### alacritty themes completion
