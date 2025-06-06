@@ -29,6 +29,16 @@ def banner [] {
 
 banner
 
+$env.config.keybindings = [{
+	name: hot-relaod,
+	modifier: none,
+	keycode: f5,
+	mode: [emacs vi_normal vi_insert],
+	event: { 
+		send: executehostcommand, 
+		cmd: $"source ($nu.env-path); source ($nu.config-path); notify-send 'hot reloaded *env.nu *config.nu'"
+	}
+}]
 
 alias la = ls -a
 alias bat = bat -n 
