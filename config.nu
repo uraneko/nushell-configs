@@ -43,6 +43,96 @@ $env.config.keybindings = [{
 alias la = ls -a
 alias bat = bat -n 
 alias "git log" = git log --graph --pretty=format:'%C(auto)%h%d (%cr) %cn:%G? <%ce> %s'
+alias mat = mdcat
+
+## reload config/env files
+# def nu-reload [break: bool = true] {
+# 	if (!$break) {
+# 		source $nu.env-path
+# 		source $nu.config-path
+# 	}
+#     sourcing config.nu would be self calling -> an infinite recursion
+# }
+
+def license [
+	--mit (-m)
+] {
+	if ($mit) {
+		bat ~/forge/.licenses/MIT.txt | save LICENSE
+
+		return
+	}
+
+	print "you need to choose a license"
+	print "run license --list/-l for a list of possible licenses"
+}
+
+### access my emails and passwords
+def auth [
+	--copy (-C),
+	--query (-Q): list<string>,
+	--max (-m): int = 1,
+	--table (-t): int = 1,
+	--email (-e),
+	--password (-p),
+	--print (-P),
+] {
+	# if ((not $email) and (not $password)) {
+	# 	print "must provide at least email or password"
+	# 	return 
+	# }
+
+	let tbl = do {
+		if ($table == 1) {
+			bat $"($env.email1)"
+		} else if ($table == 2) {
+			bat $"($env.email2)"
+		} else {
+			print "--table flag can only take one of `1` or `2` int values"
+			return
+		}
+	} 
+	let tbl = $tbl | from csv
+
+	if ((not $email) and (not $password)) {
+		print $tbl
+
+		return
+	}
+
+
+	mut val = $tbl | filter { |r| $query | all { |pat| $r.email_address | str contains $pat } }
+	let len = $val | length
+	if ($len > $max) {
+		$val = ($val | drop ($len - $max))
+	}
+
+	if ($print) {
+		print ($val)
+	}
+
+	if ($email and $password) {
+		$val = $val | select "email_address" "password"	
+			| each { |r| $"($r.email_address)\n($r.password)" } 
+			| reduce { |acc, r| $acc + "\n" + $r } 
+	} else if ($email) {
+		$val = $val | get "email_address"
+			| reduce { |acc, r| $acc + $"\n($r)" }
+	} else if ($password) {
+		$val = $val | get "password"
+			| reduce { |acc, r| $acc + $"\n($r)" }
+	}
+
+	if ($copy) {
+		$val | wl-copy
+	}
+}
+
+### open issues in nu: 
+### job control => job take <id> / <pid>
+### def reload pass false by defult to break after one time 
+### copying table with wl-copy break the ui 
+### inconsistent up/down history 
 
 ### bat --language=l sugar
 def bal [
