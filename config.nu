@@ -101,7 +101,7 @@ def auth [
 	}
 
 
-	mut val = $tbl | filter { |r| $query | all { |pat| $r.email_address | str contains $pat } }
+	mut val = $tbl | where { |r| $query | all { |pat| $r.email_address | str contains $pat } }
 	let len = $val | length
 	if ($len > $max) {
 		$val = ($val | drop ($len - $max))
