@@ -92,22 +92,46 @@ def prompt_senpai [] {
 				} else { $"($branch_clr) !($reset)" }
 			}
 
-			let add = $"($fg.g)($bold)(['+', (git status --porcelain | rg ' A .*' | wc -l)] | str join)($reset)"
-			let rem = $"($fg.r)($bold)(['-', (git status --porcelain | rg ' D .*' | wc -l)] | str join)($reset)"
-			let mod = $"($fg.y)($bold)(['✻', (git status --porcelain | rg ' M .*' | wc -l)] | str join)($reset)"
-			let unk = $"($fg.b)($bold)(['?', (git status --porcelain | rg '\?\? .*' | wc -l)] | str join)($reset)"
+			['A' 'D' 'M' '?']
+			| each { |s| 
+				let count = git_status_count $s
+				{ 's': $s, 'c': $count } 
+			} 
+			| where { |s| ($s | get c | into int) > 0} 
+			| reduce --fold $branch { |s, acc|  
+				let s = git_status_fmt ($s | get s) ($s | get c | into int)
 
-			[$add $rem $mod $unk] 
-				| reduce --fold $branch {|it, acc| if (not ($it | str ends-with "0\e[0m")) {
-					$acc + " " + $it
-				} else {
-					$acc
-				}
+				$acc + " " + $s 
 			}
 		} else { "" }
 	}
 
 	$jobs + " " + $dir +  $git + $" \e[38;2;223;173;133m⣷($reset) "
+}
+
+def git_status_count [
+	status: string,
+] {
+	let pat = match $status {
+		'A' | 'D' | 'M' => $' ($status) .*',
+		'?' => '\?\? .*',
+	}
+
+	git status --porcelain | rg $pat | wc -l
+}
+
+def git_status_fmt [
+	status: string,
+	count: number,
+] {
+	let fmt = match $status {
+		'A' => [$fg.g, '+'],
+		'D' => [$fg.r, '-'],
+		'M' => [$fg.y, '✻'],
+		'?' => [$fg.b, '?'],
+	}
+
+	$"($fmt | get 0)($bold)([($fmt | get 1), $count] | str join)($reset)"
 }
 
 $env.PROMPT_INDICATOR = ''

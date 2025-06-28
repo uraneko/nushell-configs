@@ -192,7 +192,7 @@ def rpg [] {
 ### play youtube videos from the terminal using ytp-dlp && ffplay a
 def yt [
 	--res: int (-r) = 360
-	--headless (-H),
+	--headless (-H) = true,
 	--loop (-l) = 0,
 	uri: string
 ] {	
