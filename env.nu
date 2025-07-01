@@ -86,11 +86,18 @@ def prompt_senpai [] {
 			# set git branch color
 			let branch_clr = "\e[1;38;2;251;13;123m"
 			# get git branch, if any
-			let branch = do {
+			
+			let b = do { 
 				if ($has_branch) {
-					$"($branch_clr) ("" + (git branch --show-current err> /dev/null))($reset)"
-				} else { $"($branch_clr) !($reset)" }
+					match (git branch --show-current err> /dev/null) {
+						$val if ($val | str length) == 0 => {$"[(detached_commit_branch)]"}
+						$val => $val
+					}
+				} else {
+					"!"
+				}
 			}
+			let branch = $"($branch_clr) ("" + $b)($reset)"
 
 			['A' 'D' 'M' '?']
 			| each { |s| 
@@ -107,6 +114,14 @@ def prompt_senpai [] {
 	}
 
 	$jobs + " " + $dir +  $git + $" \e[38;2;223;173;133m⣷($reset) "
+}
+
+def detached_commit_branch [] {
+	git branch 
+		| head -1 
+		| str replace "* (HEAD detached at " "" 
+		| str replace ")" "" 
+		| str trim
 }
 
 def git_status_count [
